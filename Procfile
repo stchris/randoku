@@ -1,1 +1,1 @@
-web: target/release/randoku
+web: ROCKET_PORT=$PORT ROCKET_ENV=prod target/release/randoku
