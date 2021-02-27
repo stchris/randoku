@@ -1,8 +1,8 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
-use std::sync::{Mutex};
+use std::sync::Mutex;
 
-use rand::{SeedableRng};
+use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rand::{thread_rng, Rng};
 
