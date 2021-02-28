@@ -2,12 +2,11 @@
 
 use std::sync::Mutex;
 
-use rand::SeedableRng;
 use rand::rngs::StdRng;
+use rand::SeedableRng;
 use rand::{thread_rng, Rng};
 
 use lazy_static::lazy_static;
-
 
 #[macro_use]
 extern crate rocket;
@@ -17,7 +16,9 @@ lazy_static! {
 }
 
 fn get_rand(from: Option<u32>, to: Option<u32>) -> u32 {
-    RNG.lock().unwrap().gen_range(from.unwrap_or(0)..=to.unwrap_or(100))
+    RNG.lock()
+        .unwrap()
+        .gen_range(from.unwrap_or(0)..=to.unwrap_or(100))
 }
 
 #[get("/")]
