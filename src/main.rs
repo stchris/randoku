@@ -7,6 +7,7 @@ use rand::SeedableRng;
 use rand::{thread_rng, Rng};
 
 use lazy_static::lazy_static;
+use rocket::Rocket;
 
 #[macro_use]
 extern crate rocket;
@@ -36,8 +37,60 @@ fn both_limits(from: u32, to: u32) -> String {
     format!("{}\n", get_rand(Some(from), Some(to)))
 }
 
+fn rocket() -> Rocket {
+    rocket::ignite().mount("/", routes![no_limit, upper_limit, both_limits])
+}
+
 fn main() {
-    rocket::ignite()
-        .mount("/", routes![no_limit, upper_limit, both_limits])
-        .launch();
+    rocket().launch();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rocket::local::Client;
+
+    #[test]
+    fn test_random() {
+        let client = Client::new(rocket()).expect("valid rocket instance");
+        let req = client.get("/");
+        let mut response = req.dispatch();
+
+        let num: u32 = response
+            .body_string()
+            .expect("a response")
+            .trim_end()
+            .parse()
+            .expect("a number");
+        assert!(num <= 100);
+    }
+
+    #[test]
+    fn test_upto() {
+        let client = Client::new(rocket()).expect("valid rocket instance");
+        let req = client.get("/3");
+        let mut resp = req.dispatch();
+        let num: u32 = resp
+            .body_string()
+            .expect("a response")
+            .trim_end()
+            .parse()
+            .expect("a number");
+        assert!(num <= 3);
+    }
+
+    #[test]
+    fn test_from_to() {
+        let client = Client::new(rocket()).expect("valid rocket instance");
+        let req = client.get("/5/9");
+        let mut resp = req.dispatch();
+        let num: u32 = resp
+            .body_string()
+            .expect("a response")
+            .trim_end()
+            .parse()
+            .expect("a number");
+        assert!(num <= 9);
+        assert!(num >= 5);
+    }
 }
