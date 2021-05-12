@@ -41,3 +41,19 @@ fn main() {
         .mount("/", routes![no_limit, upper_limit, both_limits])
         .launch();
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rocket::local::Client;
+
+    #[test]
+    fn test_sanity() {
+        let rocket = rocket::ignite().mount("/", routes![no_limit, upper_limit, both_limits]);
+        let client = Client::new(rocket).expect("valid rocket instance");
+        let req = client.get("/");
+        let mut response = req.dispatch();
+
+        assert_eq!(response.body_string(), Some("4".into()));
+    }
+}
