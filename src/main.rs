@@ -7,10 +7,29 @@ use rand::SeedableRng;
 use rand::{thread_rng, Rng};
 
 use lazy_static::lazy_static;
-use rocket::Rocket;
+use rocket::{request::FromRequest, Outcome, Rocket};
 
 #[macro_use]
 extern crate rocket;
+
+struct UserAgent(Option<String>);
+
+impl<'a, 'r> FromRequest<'a, 'r> for &'a UserAgent {
+    type Error = ();
+
+    fn from_request(
+        request: &'a rocket::Request<'r>,
+    ) -> rocket::request::Outcome<Self, Self::Error> {
+        Outcome::Success(request.local_cache(|| {
+            let value = request
+                .headers()
+                .get("User-Agent")
+                .next()
+                .map(|x| x.to_string());
+            UserAgent(value)
+        }))
+    }
+}
 
 lazy_static! {
     static ref RNG: Mutex<StdRng> = Mutex::new(StdRng::from_rng(thread_rng()).unwrap());
@@ -23,7 +42,15 @@ fn get_rand(from: Option<u32>, to: Option<u32>) -> u32 {
 }
 
 #[get("/")]
-fn no_limit() -> String {
+fn no_limit(user_agent: &UserAgent) -> String {
+    if user_agent
+        .0
+        .as_ref()
+        .unwrap_or(&"".to_string())
+        .starts_with("curl/")
+    {
+        return "Hello curl!".to_string();
+    }
     format!("{}\n", get_rand(Some(0), Some(100)))
 }
 
@@ -92,5 +119,18 @@ mod tests {
             .expect("a number");
         assert!(num <= 9);
         assert!(num >= 5);
+    }
+
+    #[test]
+    fn test_curl() {
+        let client = Client::new(rocket()).expect("valid rocket instance");
+        let mut req = client.get("/");
+        req.add_header(rocket::http::hyper::header::UserAgent(
+            "curl/1.1.1".to_string(),
+        ));
+        let mut response = req.dispatch();
+
+        let resp = response.body_string().expect("a response");
+        assert_eq!(resp, "Hello curl!");
     }
 }
