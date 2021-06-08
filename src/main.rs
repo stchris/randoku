@@ -1,5 +1,3 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
 use std::sync::Mutex;
 
 use rand::rngs::StdRng;
@@ -7,26 +5,33 @@ use rand::SeedableRng;
 use rand::{thread_rng, Rng};
 
 use lazy_static::lazy_static;
-use rocket::{request::FromRequest, Outcome, Rocket};
+use rocket::request::{FromRequest, Outcome};
+use rocket::{Build, Rocket};
 
 #[macro_use]
 extern crate rocket;
 
-struct UserAgent(Option<String>);
+#[derive(Debug, Clone, Copy)]
+enum UserAgent {
+    Cli,
+    Browser,
+}
 
-impl<'a, 'r> FromRequest<'a, 'r> for &'a UserAgent {
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for UserAgent {
     type Error = ();
 
-    fn from_request(
-        request: &'a rocket::Request<'r>,
-    ) -> rocket::request::Outcome<Self, Self::Error> {
-        Outcome::Success(request.local_cache(|| {
+    async fn from_request(request: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
+        Outcome::Success(*request.local_cache(|| {
             let value = request
                 .headers()
                 .get("User-Agent")
                 .next()
                 .map(|x| x.to_string());
-            UserAgent(value)
+            match value {
+                Some(value) if value.starts_with("curl/") => UserAgent::Cli,
+                _ => UserAgent::Browser,
+            }
         }))
     }
 }
@@ -42,16 +47,11 @@ fn get_rand(from: Option<u32>, to: Option<u32>) -> u32 {
 }
 
 #[get("/")]
-fn no_limit(user_agent: &UserAgent) -> String {
-    if user_agent
-        .0
-        .as_ref()
-        .unwrap_or(&"".to_string())
-        .starts_with("curl/")
-    {
-        return "Hello curl!".to_string();
+fn no_limit(user_agent: UserAgent) -> String {
+    match user_agent {
+        UserAgent::Cli => "Hello curl!".to_string(),
+        UserAgent::Browser => format!("{}\n", get_rand(Some(0), Some(100))),
     }
-    format!("{}\n", get_rand(Some(0), Some(100)))
 }
 
 #[get("/<to>")]
@@ -64,27 +64,25 @@ fn both_limits(from: u32, to: u32) -> String {
     format!("{}\n", get_rand(Some(from), Some(to)))
 }
 
-fn rocket() -> Rocket {
-    rocket::ignite().mount("/", routes![no_limit, upper_limit, both_limits])
-}
-
-fn main() {
-    rocket().launch();
+#[launch]
+fn rocket() -> Rocket<Build> {
+    rocket::build().mount("/", routes![no_limit, upper_limit, both_limits])
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rocket::local::Client;
+    use rocket::http::Header;
+    use rocket::local::blocking::Client;
 
     #[test]
     fn test_random() {
-        let client = Client::new(rocket()).expect("valid rocket instance");
+        let client = Client::untracked(rocket()).expect("valid rocket instance");
         let req = client.get("/");
-        let mut response = req.dispatch();
+        let response = req.dispatch();
 
         let num: u32 = response
-            .body_string()
+            .into_string()
             .expect("a response")
             .trim_end()
             .parse()
@@ -94,11 +92,11 @@ mod tests {
 
     #[test]
     fn test_upto() {
-        let client = Client::new(rocket()).expect("valid rocket instance");
+        let client = Client::untracked(rocket()).expect("valid rocket instance");
         let req = client.get("/3");
-        let mut resp = req.dispatch();
+        let resp = req.dispatch();
         let num: u32 = resp
-            .body_string()
+            .into_string()
             .expect("a response")
             .trim_end()
             .parse()
@@ -108,11 +106,11 @@ mod tests {
 
     #[test]
     fn test_from_to() {
-        let client = Client::new(rocket()).expect("valid rocket instance");
+        let client = Client::untracked(rocket()).expect("valid rocket instance");
         let req = client.get("/5/9");
-        let mut resp = req.dispatch();
+        let resp = req.dispatch();
         let num: u32 = resp
-            .body_string()
+            .into_string()
             .expect("a response")
             .trim_end()
             .parse()
@@ -123,14 +121,12 @@ mod tests {
 
     #[test]
     fn test_curl() {
-        let client = Client::new(rocket()).expect("valid rocket instance");
+        let client = Client::untracked(rocket()).expect("valid rocket instance");
         let mut req = client.get("/");
-        req.add_header(rocket::http::hyper::header::UserAgent(
-            "curl/1.1.1".to_string(),
-        ));
-        let mut response = req.dispatch();
+        req.add_header(Header::new("User-Agent", "curl/1.1.1".to_string()));
+        let response = req.dispatch();
 
-        let resp = response.body_string().expect("a response");
+        let resp = response.into_string().expect("a response");
         assert_eq!(resp, "Hello curl!");
     }
 }

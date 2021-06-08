@@ -9,4 +9,4 @@ edition = "2018"
 [dependencies]
 rand = { version = "0.8", features=["std", "std_rng"]}
 lazy_static = "1.4"
-rocket = "0.4"
+rocket = {git="https://github.com/SergioBenitez/Rocket"}
