@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Mutex;
 
 use rand::rngs::StdRng;
@@ -7,32 +8,31 @@ use rand::{thread_rng, Rng};
 use lazy_static::lazy_static;
 use rocket::request::{FromRequest, Outcome};
 use rocket::{Build, Rocket};
+use rocket_dyn_templates::Template;
 
 #[macro_use]
 extern crate rocket;
 
-#[derive(Debug, Clone, Copy)]
-enum UserAgent {
-    Cli,
-    Browser,
-}
+struct UserAgentCurl(());
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for UserAgent {
+impl<'r> FromRequest<'r> for UserAgentCurl {
     type Error = ();
 
     async fn from_request(request: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
-        Outcome::Success(*request.local_cache(|| {
-            let value = request
+        let ua = *request.local_cache(|| {
+            request
                 .headers()
                 .get("User-Agent")
                 .next()
-                .map(|x| x.to_string());
-            match value {
-                Some(value) if value.starts_with("curl/") => UserAgent::Cli,
-                _ => UserAgent::Browser,
-            }
-        }))
+                .map(|x| x.to_string())
+                .unwrap_or_else(|| "".to_string())
+                .starts_with("curl/")
+        });
+        match ua {
+            true => Outcome::Success(UserAgentCurl(())),
+            _ => Outcome::Forward(()),
+        }
     }
 }
 
@@ -46,12 +46,17 @@ fn get_rand(from: Option<u32>, to: Option<u32>) -> u32 {
         .gen_range(from.unwrap_or(0)..=to.unwrap_or(100))
 }
 
-#[get("/")]
-fn no_limit(user_agent: UserAgent) -> String {
-    match user_agent {
-        UserAgent::Cli => "Hello curl!".to_string(),
-        UserAgent::Browser => format!("{}\n", get_rand(Some(0), Some(100))),
-    }
+#[get("/", rank = 1)]
+fn index_plain(_ua: UserAgentCurl) -> String {
+    let num = get_rand(Some(0), Some(100));
+    format!("{}", num)
+}
+
+#[get("/", rank = 2)]
+fn index_browser() -> Template {
+    // let num = get_rand(Some(0), Some(100));
+    let context: HashMap<String, String> = HashMap::new();
+    Template::render("index", context)
 }
 
 #[get("/<to>")]
@@ -66,7 +71,10 @@ fn both_limits(from: u32, to: u32) -> String {
 
 #[launch]
 fn rocket() -> Rocket<Build> {
-    rocket::build().mount("/", routes![no_limit, upper_limit, both_limits])
+    rocket::build().attach(Template::fairing()).mount(
+        "/",
+        routes![index_plain, index_browser, upper_limit, both_limits],
+    )
 }
 
 #[cfg(test)]
@@ -76,18 +84,11 @@ mod tests {
     use rocket::local::blocking::Client;
 
     #[test]
-    fn test_random() {
+    fn test_index() {
         let client = Client::untracked(rocket()).expect("valid rocket instance");
         let req = client.get("/");
         let response = req.dispatch();
-
-        let num: u32 = response
-            .into_string()
-            .expect("a response")
-            .trim_end()
-            .parse()
-            .expect("a number");
-        assert!(num <= 100);
+        assert!(response.into_string().unwrap().contains("Randoku"));
     }
 
     #[test]
@@ -120,13 +121,18 @@ mod tests {
     }
 
     #[test]
-    fn test_curl() {
+    fn test_random() {
         let client = Client::untracked(rocket()).expect("valid rocket instance");
         let mut req = client.get("/");
         req.add_header(Header::new("User-Agent", "curl/1.1.1".to_string()));
         let response = req.dispatch();
 
-        let resp = response.into_string().expect("a response");
-        assert_eq!(resp, "Hello curl!");
+        let num: u32 = response
+            .into_string()
+            .expect("a response")
+            .trim_end()
+            .parse()
+            .expect("a number");
+        assert!(num <= 100);
     }
 }
