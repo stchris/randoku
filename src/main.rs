@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Mutex;
 
 use rand::rngs::StdRng;
@@ -12,7 +13,7 @@ use rocket_dyn_templates::Template;
 #[macro_use]
 extern crate rocket;
 
-struct UserAgentCurl(String);
+struct UserAgentCurl(());
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for UserAgentCurl {
@@ -25,11 +26,11 @@ impl<'r> FromRequest<'r> for UserAgentCurl {
                 .get("User-Agent")
                 .next()
                 .map(|x| x.to_string())
-                .unwrap()
+                .unwrap_or_else(|| "".to_string())
                 .starts_with("curl/")
         });
         match ua {
-            true => Outcome::Success(UserAgentCurl("".to_string())),
+            true => Outcome::Success(UserAgentCurl(())),
             _ => Outcome::Forward(()),
         }
     }
@@ -53,8 +54,9 @@ fn index_plain(_ua: UserAgentCurl) -> String {
 
 #[get("/", rank = 2)]
 fn index_browser() -> Template {
-    let num = get_rand(Some(0), Some(100));
-    Template::render("index", format!("{}", num))
+    // let num = get_rand(Some(0), Some(100));
+    let context: HashMap<String, String> = HashMap::new();
+    Template::render("index", context)
 }
 
 #[get("/<to>")]
@@ -86,7 +88,7 @@ mod tests {
         let client = Client::untracked(rocket()).expect("valid rocket instance");
         let req = client.get("/");
         let response = req.dispatch();
-        println!("{:?}", response.into_string().unwrap().to_string())
+        assert!(response.into_string().unwrap().contains("Randoku"));
     }
 
     #[test]
