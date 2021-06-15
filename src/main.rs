@@ -12,28 +12,26 @@ use rocket_dyn_templates::Template;
 #[macro_use]
 extern crate rocket;
 
-#[derive(Debug, Clone, Copy)]
-enum UserAgent {
-    Cli,
-    Browser,
-}
+struct UserAgentCurl(String);
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for UserAgent {
+impl<'r> FromRequest<'r> for UserAgentCurl {
     type Error = ();
 
     async fn from_request(request: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
-        Outcome::Success(*request.local_cache(|| {
-            let value = request
+        let ua = *request.local_cache(|| {
+            request
                 .headers()
                 .get("User-Agent")
                 .next()
-                .map(|x| x.to_string());
-            match value {
-                Some(value) if value.starts_with("curl/") => UserAgent::Cli,
-                _ => UserAgent::Browser,
-            }
-        }))
+                .map(|x| x.to_string())
+                .unwrap()
+                .starts_with("curl/")
+        });
+        match ua {
+            true => Outcome::Success(UserAgentCurl("".to_string())),
+            _ => Outcome::Forward(()),
+        }
     }
 }
 
@@ -47,14 +45,16 @@ fn get_rand(from: Option<u32>, to: Option<u32>) -> u32 {
         .gen_range(from.unwrap_or(0)..=to.unwrap_or(100))
 }
 
-#[get("/")]
-fn index<'r>(
-    user_agent: UserAgent,
-) -> rocket::response::Result<Template, rocket::response::status::Created<String>> {
-    match user_agent {
-        UserAgent::Browser => Ok(Template::render("index", "name".to_string())),
-        UserAgent::Cli => Ok(rocket::response::status::Created(format!("{}\n", get_rand(Some(0), Some(100))))
-    }
+#[get("/", rank = 1)]
+fn index_plain(_ua: UserAgentCurl) -> String {
+    let num = get_rand(Some(0), Some(100));
+    format!("{}", num)
+}
+
+#[get("/", rank = 2)]
+fn index_browser() -> Template {
+    let num = get_rand(Some(0), Some(100));
+    Template::render("index", format!("{}", num))
 }
 
 #[get("/<to>")]
@@ -69,9 +69,10 @@ fn both_limits(from: u32, to: u32) -> String {
 
 #[launch]
 fn rocket() -> Rocket<Build> {
-    rocket::build()
-        .attach(Template::fairing())
-        .mount("/", routes![index, upper_limit, both_limits])
+    rocket::build().attach(Template::fairing()).mount(
+        "/",
+        routes![index_plain, index_browser, upper_limit, both_limits],
+    )
 }
 
 #[cfg(test)]
