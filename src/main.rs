@@ -88,6 +88,13 @@ mod tests {
         let client = Client::untracked(rocket()).expect("valid rocket instance");
         let req = client.get("/");
         let response = req.dispatch();
+        let content = response
+            .headers()
+            .iter()
+            .find(|h| h.name() == "Content-Type")
+            .unwrap();
+        let content = content.value();
+        assert!(content.contains("text/html"));
         assert!(response.into_string().unwrap().contains("Randoku"));
     }
 
