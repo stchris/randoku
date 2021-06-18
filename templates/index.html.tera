@@ -12,11 +12,11 @@
   </header>
 
   <main>
-    <h3>API Docs</h3>
+    <h3>API</h3>
     <p>
         <pre>/ - generate a random number between 0 and 100</pre>
-        <pre>/<to> - generate a random number between 0 and "to"</pre>
-        <pre>/<from>/<to> - generate a random number between "from" and "to"</pre>
+        <pre>/&lt;to&gt; - generate a random number between 0 and "to"</pre>
+        <pre>/&lt;from&gt;/&lt;to&gt; - generate a random number between "from" and "to"</pre>
     </p>
   </main>
 
