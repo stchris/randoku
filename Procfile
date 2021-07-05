@@ -1,1 +1,1 @@
-web: ROCKET_ADDRESS=0.0.0.0 ROCKET_PORT=$PORT target/release/$APP
+web: ROCKET_LOG_LEVEL=debug ROCKET_ADDRESS=0.0.0.0 ROCKET_PORT=$PORT target/release/$APP
