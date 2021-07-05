@@ -1,1 +1,1 @@
-web: target/release/
+web: target/release/$APP
