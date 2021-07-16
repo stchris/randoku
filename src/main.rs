@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::sync::Mutex;
 
 use rand::rngs::StdRng;
@@ -8,10 +7,17 @@ use rand::{thread_rng, Rng};
 use lazy_static::lazy_static;
 use rocket::request::{FromRequest, Outcome};
 use rocket::{Build, Rocket};
-use rocket_dyn_templates::Template;
+
+use askama::Template;
 
 #[macro_use]
 extern crate rocket;
+
+#[derive(Template)]
+#[template(path = "index.html")]
+struct IndexTemplate<'a> {
+    name: &'a str,
+}
 
 struct UserAgentCurl(());
 
@@ -53,10 +59,8 @@ fn index_plain(_ua: UserAgentCurl) -> String {
 }
 
 #[get("/", rank = 2)]
-fn index_browser() -> Template {
-    // let num = get_rand(Some(0), Some(100));
-    let context: HashMap<String, String> = HashMap::new();
-    Template::render("index", context)
+fn index_browser() -> IndexTemplate<'static> {
+    IndexTemplate { name: "hi" }
 }
 
 #[get("/<to>")]
@@ -71,7 +75,7 @@ fn both_limits(from: u32, to: u32) -> String {
 
 #[launch]
 fn rocket() -> Rocket<Build> {
-    rocket::build().attach(Template::fairing()).mount(
+    rocket::build().mount(
         "/",
         routes![index_plain, index_browser, upper_limit, both_limits],
     )
