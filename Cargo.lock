@@ -24,7 +24,7 @@ dependencies = [
 [[package]]
 name = "askama"
 version = "0.10.6"
-source = "git+https://github.com/djc/askama#7e227907fe5d293b2d7620602d48ffba94e35dc5"
+source = "git+https://github.com/djc/askama#d45e106bf219d6da94538e2816472ca8026500ba"
 dependencies = [
  "askama_derive 0.10.5 (git+https://github.com/djc/askama)",
  "askama_escape 0.10.1 (git+https://github.com/djc/askama)",
@@ -45,7 +45,7 @@ dependencies = [
 [[package]]
 name = "askama_derive"
 version = "0.10.5"
-source = "git+https://github.com/djc/askama#7e227907fe5d293b2d7620602d48ffba94e35dc5"
+source = "git+https://github.com/djc/askama#d45e106bf219d6da94538e2816472ca8026500ba"
 dependencies = [
  "askama_shared 0.11.2",
  "proc-macro2",
@@ -61,7 +61,7 @@ checksum = "90c108c1a94380c89d2215d0ac54ce09796823cca0fd91b299cfff3b33e346fb"
 [[package]]
 name = "askama_escape"
 version = "0.10.1"
-source = "git+https://github.com/djc/askama#7e227907fe5d293b2d7620602d48ffba94e35dc5"
+source = "git+https://github.com/djc/askama#d45e106bf219d6da94538e2816472ca8026500ba"
 
 [[package]]
 name = "askama_rocket"
@@ -89,10 +89,9 @@ dependencies = [
 [[package]]
 name = "askama_shared"
 version = "0.11.2"
-source = "git+https://github.com/djc/askama#7e227907fe5d293b2d7620602d48ffba94e35dc5"
+source = "git+https://github.com/djc/askama#d45e106bf219d6da94538e2816472ca8026500ba"
 dependencies = [
  "askama_escape 0.10.1 (git+https://github.com/djc/askama)",
- "funty",
  "nom",
  "proc-macro2",
  "quote",
@@ -632,9 +631,9 @@ dependencies = [
 
 [[package]]
 name = "memchr"
-version = "2.4.0"
+version = "2.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b16bd47d9e329435e309c58469fe0791c2d0d1ba96ec0954152a5ae2b04387dc"
+checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
 
 [[package]]
 name = "mime"
@@ -697,9 +696,9 @@ dependencies = [
 
 [[package]]
 name = "nom"
-version = "6.1.2"
+version = "6.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7413f999671bd4745a7b624bd370a569fb6bc574b23c83a3c5ed2e453f3d5e2"
+checksum = "9c5c51b9083a3c620fa67a2a635d1ce7d95b897e957d6b28ff9a5da960a103a6"
 dependencies = [
  "bitvec",
  "funty",
