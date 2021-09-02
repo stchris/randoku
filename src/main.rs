@@ -15,8 +15,7 @@ extern crate rocket;
 
 #[derive(Template)]
 #[template(path = "index.html")]
-struct IndexTemplate<'a> {
-    name: &'a str,
+struct IndexTemplate {
 }
 
 struct UserAgentCurl(());
@@ -59,8 +58,8 @@ fn index_plain(_ua: UserAgentCurl) -> String {
 }
 
 #[get("/", rank = 2)]
-fn index_browser() -> IndexTemplate<'static> {
-    IndexTemplate { name: "hi" }
+fn index_browser() -> IndexTemplate {
+    IndexTemplate {}
 }
 
 #[get("/<to>")]
