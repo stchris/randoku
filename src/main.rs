@@ -15,8 +15,7 @@ extern crate rocket;
 
 #[derive(Template)]
 #[template(path = "index.html")]
-struct IndexTemplate {
-}
+struct IndexTemplate {}
 
 struct UserAgentCurl(());
 
