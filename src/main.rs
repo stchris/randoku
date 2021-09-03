@@ -2,6 +2,7 @@ use std::sync::Mutex;
 
 use rand::rngs::StdRng;
 use rand::SeedableRng;
+use rand::seq::SliceRandom;
 use rand::{thread_rng, Rng};
 
 use lazy_static::lazy_static;
@@ -71,11 +72,24 @@ fn both_limits(from: u32, to: u32) -> String {
     format!("{}\n", get_rand(Some(from), Some(to)))
 }
 
+#[get("/shuffle/<list>")]
+fn shuffle(list: String) -> String {
+    let mut items: Vec<&str>= list.split(",").into_iter().collect();
+    items.shuffle(&mut thread_rng());
+    format!("{}", items.join("\n"))
+}
+
 #[launch]
 fn rocket() -> Rocket<Build> {
     rocket::build().mount(
         "/",
-        routes![index_plain, index_browser, upper_limit, both_limits],
+        routes![
+            index_plain,
+            index_browser,
+            upper_limit,
+            both_limits,
+            shuffle
+        ],
     )
 }
 
@@ -143,5 +157,18 @@ mod tests {
             .parse()
             .expect("a number");
         assert!(num <= 100);
+    }
+
+    #[test]
+    fn test_shuffle() {
+        let client = Client::untracked(rocket()).expect("valid rocket instance");
+        let req = client.get("/shuffle/apples,bananas,oranges");
+        let response = req.dispatch();
+
+        let response = response.into_string().expect("a response");
+        let response = response.trim_end();
+        assert!(response.contains("apples"));
+        assert!(response.contains("bananas"));
+        assert!(response.contains("oranges"));
     }
 }
