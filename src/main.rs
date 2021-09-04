@@ -1,8 +1,9 @@
 use std::sync::Mutex;
 
 use rand::rngs::StdRng;
-use rand::SeedableRng;
 use rand::seq::SliceRandom;
+use rand::SeedableRng;
+
 use rand::{thread_rng, Rng};
 
 use lazy_static::lazy_static;
@@ -74,7 +75,7 @@ fn both_limits(from: u32, to: u32) -> String {
 
 #[get("/shuffle/<list>")]
 fn shuffle(list: String) -> String {
-    let mut items: Vec<&str>= list.split(',').into_iter().collect();
+    let mut items: Vec<&str> = list.split(',').into_iter().collect();
     items.shuffle(&mut thread_rng());
     items.join("\n")
 }
