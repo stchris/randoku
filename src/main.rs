@@ -74,9 +74,9 @@ fn both_limits(from: u32, to: u32) -> String {
 
 #[get("/shuffle/<list>")]
 fn shuffle(list: String) -> String {
-    let mut items: Vec<&str>= list.split(",").into_iter().collect();
+    let mut items: Vec<&str>= list.split(',').into_iter().collect();
     items.shuffle(&mut thread_rng());
-    format!("{}", items.join("\n"))
+    items.join("\n")
 }
 
 #[launch]
