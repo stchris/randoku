@@ -4,7 +4,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Randoku - Random numbers as a service</title>
+  <title>randoku - random numbers as a service</title>
+
+  <style>
+    input[type=number] {
+      width: 55px;
+    }
+  </style>
+
+  <script src="https://vuejs.org/js/vue.js"></script>
 </head>
 
 <body>
@@ -17,10 +25,13 @@
     <h3>API</h3>
     <p>
     <code>/</code> - generate a random number between 0 and 100 (expects the <b>User-Agent</b> to start with <i>curl/</i>)
+    <button v-on:click="rand">try it =></button> <span>[[ randResult ]]</span>
     <br/>
     <code>/&lt;<i>to</i>&gt;</code> - generate a random number between 0 and <i>to</i>
+    <button v-on:click="randTo">try it =></button> <input type="number" min=0 v-model="randToVal"></input> <span>[[ randToResult ]]</span>
     <br/>
     <code>/&lt;<i>from</i>&gt;/&lt;<i>to</i>&gt;</code> - generate a random number between <i>from</i> and <i>to</i>
+    <button v-on:click="randFromTo">try it =></button> <input type="number" min=0 v-model="randFromToValFrom"></input> <input type="number" min=0 v-model="randFromToValTo"></input> <span>[[ randFromToResult ]]</span>
     <br/>
     <code>/shuffle/&lt;<i>items</i>&gt;</code> - shuffles <i>items</i> (a comma-separated list)
     </p>
@@ -29,6 +40,38 @@
   <footer>
     <p>Source code: <a href="https://github.com/stchris/randoku">github.com/stchris/randoku</a></p>
   </footer>
+
+  <script>
+    var app = new Vue({
+      el: 'main',
+      delimiters: ['[[', ']]'],
+      data: {
+        randResult: '',
+        randToVal: 9876,
+        randToResult: '',
+        randFromToValFrom: 0,
+        randFromToValTo: 100,
+        randFromToResult: '',
+      },
+      methods: {
+        rand: function () {
+          fetch("/", {headers: {'User-Agent': 'curl/1'}}).then(response => response.text()).then(data => {
+            this.randResult = data;
+          });
+        },
+        randTo: function () {
+          fetch(`/${this.randToVal}`, {headers: {'User-Agent': 'curl/1'}}).then(response => response.text()).then(data => {
+            this.randToResult = data;
+          });
+        },
+        randFromTo: function () {
+          fetch(`/${this.randFromToValFrom}/${this.randFromToValTo}`, {headers: {'User-Agent': 'curl/1'}}).then(response => response.text()).then(data => {
+            this.randFromToResult = data;
+          });
+        }
+      }
+    })
+  </script>
 </body>
 
 </html>
