@@ -15,19 +15,22 @@
 
   <main>
     <h3>API</h3>
+    <p>This service was made to be queried from the command-line via curl, but you can use any other http client as well
+      (except for the <i>/</i> endpoint which expects an user agent which starts with <i>curl/</i>)</p>
     <p>
-    <code>/</code> - generate a random number between 0 and 100 (expects the <b>User-Agent</b> to start with <i>curl/</i>)
-    <br/>
-    <code>/&lt;<i>to</i>&gt;</code> - generate a random number between 0 and <i>to</i>
-    <br/>
-    <code>/&lt;<i>from</i>&gt;/&lt;<i>to</i>&gt;</code> - generate a random number between <i>from</i> and <i>to</i>
-    <br/>
-    <code>/shuffle/&lt;<i>items</i>&gt;</code> - shuffles <i>items</i> (a comma-separated list)
+      <code>/</code> - generate a random number between 0 and 100
+      <br />
+      <code>/&lt;<i>to</i>&gt;</code> - generate a random number between 0 and <i>to</i>
+      <br />
+      <code>/&lt;<i>from</i>&gt;/&lt;<i>to</i>&gt;</code> - generate a random number between <i>from</i> and <i>to</i>
+      <br />
+      <code>/shuffle/&lt;<i>items</i>&gt;</code> - shuffles <i>items</i> (a comma-separated list)
     </p>
   </main>
 
   <footer>
-    <p>Source code: <a href="https://github.com/stchris/randoku">github.com/stchris/randoku</a></p>
+    <p>Source code: <a href="https://github.com/stchris/randoku">github.com/stchris/randoku</a>, author: <a
+        href="https://0chris.com/">0chris.com/</a></p>
   </footer>
 </body>
 
