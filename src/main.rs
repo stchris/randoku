@@ -8,6 +8,7 @@ use rand::{thread_rng, Rng};
 
 use lazy_static::lazy_static;
 use rocket::request::{FromRequest, Outcome};
+use rocket::response::status::BadRequest;
 use rocket::{Build, Rocket};
 
 use askama::Template;
@@ -69,8 +70,14 @@ fn upper_limit(to: u32) -> String {
 }
 
 #[get("/<from>/<to>")]
-fn both_limits(from: u32, to: u32) -> String {
-    format!("{}\n", get_rand(Some(from), Some(to)))
+fn both_limits(from: u32, to: u32) -> Result<String, BadRequest<String>> {
+    if from > to {
+        return Err(BadRequest::<_>(Some(format!(
+            "Wrong parameter order: {} should be <= {} (try switching them around).",
+            from, to
+        ))));
+    }
+    Ok(format!("{}\n", get_rand(Some(from), Some(to))))
 }
 
 #[get("/shuffle/<list>")]
@@ -142,6 +149,18 @@ mod tests {
             .expect("a number");
         assert!(num <= 9);
         assert!(num >= 5);
+    }
+
+    #[test]
+    fn test_from_greater_than_to_fails() {
+        let client = Client::untracked(rocket()).expect("valid rocket instance");
+        let req = client.get("/9/5");
+        let resp = req.dispatch();
+        assert_eq!(resp.status().code, 400);
+        assert_eq!(
+            resp.into_string().unwrap().to_string(),
+            "Wrong parameter order: 9 should be <= 5 (try switching them around).".to_string()
+        );
     }
 
     #[test]
