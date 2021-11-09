@@ -20,10 +20,13 @@ extern crate rocket;
 #[template(path = "index.html")]
 struct IndexTemplate {}
 
-struct UserAgentCurl(());
+struct UserAgentBrowser(());
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for UserAgentCurl {
+/// A request guard which lets requests from browsers through or forwards otherwise.
+/// Based on the info from MDN https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
+/// See also: https://github.com/stchris/randoku/issues/23
+impl<'r> FromRequest<'r> for UserAgentBrowser {
     type Error = ();
 
     async fn from_request(request: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
@@ -34,10 +37,10 @@ impl<'r> FromRequest<'r> for UserAgentCurl {
                 .next()
                 .map(|x| x.to_string())
                 .unwrap_or_else(|| "".to_string())
-                .starts_with("curl/")
+                .starts_with("Mozilla/5.0")
         });
         match ua {
-            true => Outcome::Success(UserAgentCurl(())),
+            true => Outcome::Success(UserAgentBrowser(())),
             _ => Outcome::Forward(()),
         }
     }
@@ -54,14 +57,14 @@ fn get_rand(from: Option<u64>, to: Option<u64>) -> u64 {
 }
 
 #[get("/", rank = 1)]
-fn index_plain(_ua: UserAgentCurl) -> String {
-    let num = get_rand(Some(0), Some(100));
-    format!("{}", num)
+fn index_browser(_ua: UserAgentBrowser) -> IndexTemplate {
+    IndexTemplate {}
 }
 
 #[get("/", rank = 2)]
-fn index_browser() -> IndexTemplate {
-    IndexTemplate {}
+fn index_plain() -> String {
+    let num = get_rand(Some(0), Some(100));
+    format!("{}", num)
 }
 
 #[get("/<to>")]
@@ -110,7 +113,8 @@ mod tests {
     #[test]
     fn test_index() {
         let client = Client::untracked(rocket()).expect("valid rocket instance");
-        let req = client.get("/");
+        let mut req = client.get("/");
+        req.add_header(Header::new("User-Agent", "Mozilla/5.0".to_string()));
         let response = req.dispatch();
         let content = response
             .headers()
