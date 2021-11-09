@@ -64,7 +64,7 @@ fn index_browser(_ua: UserAgentBrowser) -> IndexTemplate {
 #[get("/", rank = 2)]
 fn index_plain() -> String {
     let num = get_rand(Some(0), Some(100));
-    format!("{}", num)
+    format!("{}\n", num)
 }
 
 #[get("/<to>")]
