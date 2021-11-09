@@ -47,7 +47,7 @@ lazy_static! {
     static ref RNG: Mutex<StdRng> = Mutex::new(StdRng::from_rng(thread_rng()).unwrap());
 }
 
-fn get_rand(from: Option<u32>, to: Option<u32>) -> u32 {
+fn get_rand(from: Option<u64>, to: Option<u64>) -> u64 {
     RNG.lock()
         .unwrap()
         .gen_range(from.unwrap_or(0)..=to.unwrap_or(100))
@@ -65,12 +65,12 @@ fn index_browser() -> IndexTemplate {
 }
 
 #[get("/<to>")]
-fn upper_limit(to: u32) -> String {
+fn upper_limit(to: u64) -> String {
     format!("{}\n", get_rand(Some(0), Some(to)))
 }
 
 #[get("/<from>/<to>")]
-fn both_limits(from: u32, to: u32) -> Result<String, BadRequest<String>> {
+fn both_limits(from: u64, to: u64) -> Result<String, BadRequest<String>> {
     if from > to {
         return Err(BadRequest::<_>(Some(format!(
             "Wrong parameter order: {} should be <= {} (try switching them around).",
@@ -127,7 +127,7 @@ mod tests {
         let client = Client::untracked(rocket()).expect("valid rocket instance");
         let req = client.get("/3");
         let resp = req.dispatch();
-        let num: u32 = resp
+        let num: u64 = resp
             .into_string()
             .expect("a response")
             .trim_end()
@@ -137,11 +137,27 @@ mod tests {
     }
 
     #[test]
+    fn test_upto_large_number() {
+        let client = Client::untracked(rocket()).expect("valid rocket instance");
+        let req = client.get("/9999999999");
+        let resp = req.dispatch();
+        assert_eq!(resp.status().code, 200);
+
+        let num: u64 = resp
+            .into_string()
+            .expect("a response")
+            .trim_end()
+            .parse()
+            .expect("a number");
+        dbg!(num);
+    }
+
+    #[test]
     fn test_from_to() {
         let client = Client::untracked(rocket()).expect("valid rocket instance");
         let req = client.get("/5/9");
         let resp = req.dispatch();
-        let num: u32 = resp
+        let num: u64 = resp
             .into_string()
             .expect("a response")
             .trim_end()
@@ -170,7 +186,7 @@ mod tests {
         req.add_header(Header::new("User-Agent", "curl/1.1.1".to_string()));
         let response = req.dispatch();
 
-        let num: u32 = response
+        let num: u64 = response
             .into_string()
             .expect("a response")
             .trim_end()
