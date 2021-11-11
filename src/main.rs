@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+
 use std::sync::Mutex;
 
 use rand::rngs::StdRng;
