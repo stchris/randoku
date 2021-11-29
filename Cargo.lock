@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "askama"
 version = "0.11.0-beta.1"
-source = "git+https://github.com/djc/askama#028eb1c3103ee59163b7b14829583a174a43b12a"
+source = "git+https://github.com/djc/askama#4940b5dd5e792811491f1c3c3b1c70c8177c7e02"
 dependencies = [
  "askama_derive",
  "askama_escape",
@@ -17,7 +17,7 @@ dependencies = [
 [[package]]
 name = "askama_derive"
 version = "0.11.0-beta.1"
-source = "git+https://github.com/djc/askama#028eb1c3103ee59163b7b14829583a174a43b12a"
+source = "git+https://github.com/djc/askama#4940b5dd5e792811491f1c3c3b1c70c8177c7e02"
 dependencies = [
  "askama_shared",
  "proc-macro2",
@@ -27,12 +27,12 @@ dependencies = [
 [[package]]
 name = "askama_escape"
 version = "0.10.2"
-source = "git+https://github.com/djc/askama#028eb1c3103ee59163b7b14829583a174a43b12a"
+source = "git+https://github.com/djc/askama#4940b5dd5e792811491f1c3c3b1c70c8177c7e02"
 
 [[package]]
 name = "askama_rocket"
 version = "0.11.0-rc.2"
-source = "git+https://github.com/djc/askama#028eb1c3103ee59163b7b14829583a174a43b12a"
+source = "git+https://github.com/djc/askama#4940b5dd5e792811491f1c3c3b1c70c8177c7e02"
 dependencies = [
  "askama",
  "rocket",
@@ -41,7 +41,7 @@ dependencies = [
 [[package]]
 name = "askama_shared"
 version = "0.12.0-beta.1"
-source = "git+https://github.com/djc/askama#028eb1c3103ee59163b7b14829583a174a43b12a"
+source = "git+https://github.com/djc/askama#4940b5dd5e792811491f1c3c3b1c70c8177c7e02"
 dependencies = [
  "askama_escape",
  "nom",
