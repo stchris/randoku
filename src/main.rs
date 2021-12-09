@@ -5,6 +5,8 @@ use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
 
+use std::string::String;
+
 use rand::{thread_rng, Rng};
 
 use lazy_static::lazy_static;

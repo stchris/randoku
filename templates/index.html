@@ -20,7 +20,11 @@
     <p>
       <code>/</code> - generate a random number between 0 and 100
       <br />
+      <button hx-get="/" hx-target="#try1" hx-headers='{"User-Agent": "demo/1"}'>try</button><span id="try1"></span>
+      <br />
       <code>/&lt;<i>to</i>&gt;</code> - generate a random number between 0 and <i>to</i>
+      <br />
+      <button hx-get="/" hx-target="#try2" hx-params="42">try</button><span id="try2"></span>
       <br />
       <code>/&lt;<i>from</i>&gt;/&lt;<i>to</i>&gt;</code> - generate a random number between <i>from</i> and <i>to</i>
       <br />
@@ -34,6 +38,7 @@
     <p>Source code: <a href="https://github.com/stchris/randoku">github.com/stchris/randoku</a>, author: <a
         href="https://0chris.com/">0chris.com/</a></p>
   </footer>
+  <script src="https://unpkg.com/htmx.org@1.6.1"></script>
 </body>
 
 </html>
