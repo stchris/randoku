@@ -8,8 +8,9 @@ license = "AGPL-3.0-or-later"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-askama = { git = "https://github.com/djc/askama", default-features = false, features=["with-rocket", "mime", "mime_guess"]}
-askama_rocket = {git = "https://github.com/djc/askama"}
 rand = { version = "0.8", features=["std", "std_rng"]}
 lazy_static = "1.4"
-rocket = { version = "0.5.0-rc.1", default-features = false }
+rocket = { version = "0.5.0-rc.1" }
+
+[dependencies.rocket_dyn_templates]
+features = ["handlebars"]

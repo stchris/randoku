@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Mutex;
 
 use rand::rngs::StdRng;
@@ -8,18 +9,15 @@ use rand::{thread_rng, Rng};
 
 use lazy_static::lazy_static;
 use rocket::request::{FromRequest, Outcome};
+use rocket::response::content;
 use rocket::response::status::BadRequest;
 use rocket::{Build, Rocket};
-
-use askama::Template;
+use rocket_dyn_templates::handlebars::Handlebars;
 
 #[macro_use]
 extern crate rocket;
 
-#[derive(Template)]
-#[template(path = "index.html")]
-struct IndexTemplate {}
-
+const INDEX: &str = include_str!("../templates/index.html");
 struct UserAgentBrowser(());
 
 #[rocket::async_trait]
@@ -57,8 +55,14 @@ fn get_rand(from: Option<u64>, to: Option<u64>) -> u64 {
 }
 
 #[get("/", rank = 1)]
-fn index_browser(_ua: UserAgentBrowser) -> IndexTemplate {
-    IndexTemplate {}
+fn index_browser(_ua: UserAgentBrowser) -> content::Html<String> {
+    let context: HashMap<&str, &str> = HashMap::new();
+    let reg = Handlebars::new();
+    let res = reg
+        .render_template(INDEX, &context)
+        .expect("failed to render template");
+
+    content::Html(res)
 }
 
 #[get("/", rank = 2)]
