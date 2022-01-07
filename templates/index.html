@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/unpoly@2.5.0/unpoly.min.css">
   <title>Randoku - Random numbers as a service</title>
 </head>
 
@@ -18,7 +19,9 @@
     <p>This service was made to be queried from command-line tools (note that the <i>/</i> endpoint displays the API
       overview page if the user agent starts with <i>Mozilla/5.0</i>)</p>
     <p>
-      <code>/</code> - generate a random number between 0 and 100
+      <code><a href="/" up-target="span" up-headers='{"User-Agent":"demo/1"}'>GET /</a><span id="try1"></span></code> -
+      generate a random number between 0 and
+      100
       <br />
       <code>/&lt;<i>to</i>&gt;</code> - generate a random number between 0 and <i>to</i>
       <br />
@@ -34,6 +37,7 @@
     <p>Source code: <a href="https://github.com/stchris/randoku">github.com/stchris/randoku</a>, author: <a
         href="https://0chris.com/">0chris.com/</a></p>
   </footer>
+  <script src="https://unpkg.com/unpoly@2.5.0/unpoly.min.js"></script>
 </body>
 
 </html>
