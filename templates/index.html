@@ -17,6 +17,7 @@
     <h3>API</h3>
     <p>This service was made to be queried from command-line tools (note that the <i>/</i> endpoint displays the API
       overview page if the user agent starts with <i>Mozilla/5.0</i>)</p>
+    <span id="errors" style="color: red;"></span>
     <p>
       <code>/</code> - generate a random number between 0 and 100
       <br />
@@ -24,7 +25,7 @@
       <br />
       <code>/&lt;<i>to</i>&gt;</code> - generate a random number between 0 and <i>to</i>
       <br />
-      <button hx-get="/" hx-target="#try2" hx-params="42">try</button><span id="try2"></span>
+      <button hx-get="/42" hx-target="#try2" hx-params="42">try</button><span id="try2"></span>
       <br />
       <code>/&lt;<i>from</i>&gt;/&lt;<i>to</i>&gt;</code> - generate a random number between <i>from</i> and <i>to</i>
       <br />
@@ -39,6 +40,14 @@
         href="https://0chris.com/">0chris.com/</a></p>
   </footer>
   <script src="https://unpkg.com/htmx.org@1.6.1"></script>
+  <script>
+    document.body.addEventListener('htmx:sendError', function (evt) {
+      document.querySelectorAll("#errors")[0].innerHTML = "Request failed ( " + evt.detail.error + " )";
+    });
+    document.body.addEventListener('htmx:beforeSend', function (evt) {
+      document.querySelectorAll("#errors")[0].innerHTML = "";
+    });
+  </script>
 </body>
 
 </html>
