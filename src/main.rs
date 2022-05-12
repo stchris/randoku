@@ -55,14 +55,14 @@ fn get_rand(from: Option<u64>, to: Option<u64>) -> u64 {
 }
 
 #[get("/", rank = 1)]
-fn index_browser(_ua: UserAgentBrowser) -> content::Html<String> {
+fn index_browser(_ua: UserAgentBrowser) -> content::RawHtml<String> {
     let context: HashMap<&str, &str> = HashMap::new();
     let reg = Handlebars::new();
     let res = reg
         .render_template(INDEX, &context)
         .expect("failed to render template");
 
-    content::Html(res)
+    content::RawHtml(res)
 }
 
 #[get("/", rank = 2)]
