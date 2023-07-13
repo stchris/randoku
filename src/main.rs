@@ -1,48 +1,16 @@
-use std::collections::HashMap;
 use std::sync::Mutex;
 
+use axum::extract::Path;
+use axum::response::{Html, IntoResponse};
+use axum::{headers::UserAgent, http::StatusCode, routing::get, Router, TypedHeader};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
-
 use rand::{thread_rng, Rng};
 
 use lazy_static::lazy_static;
-use rocket::request::{FromRequest, Outcome};
-use rocket::response::content;
-use rocket::response::status::BadRequest;
-use rocket::{Build, Rocket};
-use rocket_dyn_templates::handlebars::Handlebars;
-
-#[macro_use]
-extern crate rocket;
 
 const INDEX: &str = include_str!("../templates/index.html");
-struct UserAgentBrowser(());
-
-#[rocket::async_trait]
-/// A request guard which lets requests from browsers through or forwards otherwise.
-/// Based on the info from MDN https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
-/// See also: https://github.com/stchris/randoku/issues/23
-impl<'r> FromRequest<'r> for UserAgentBrowser {
-    type Error = ();
-
-    async fn from_request(request: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
-        let ua = *request.local_cache(|| {
-            request
-                .headers()
-                .get("User-Agent")
-                .next()
-                .map(|x| x.to_string())
-                .unwrap_or_else(|| "".to_string())
-                .starts_with("Mozilla/5.0")
-        });
-        match ua {
-            true => Outcome::Success(UserAgentBrowser(())),
-            _ => Outcome::Forward(()),
-        }
-    }
-}
 
 lazy_static! {
     static ref RNG: Mutex<StdRng> = Mutex::new(StdRng::from_rng(thread_rng()).unwrap());
@@ -54,165 +22,206 @@ fn get_rand(from: Option<u64>, to: Option<u64>) -> u64 {
         .gen_range(from.unwrap_or(0)..=to.unwrap_or(100))
 }
 
-#[get("/", rank = 1)]
-fn index_browser(_ua: UserAgentBrowser) -> content::RawHtml<String> {
-    let context: HashMap<&str, &str> = HashMap::new();
-    let reg = Handlebars::new();
-    let res = reg
-        .render_template(INDEX, &context)
-        .expect("failed to render template");
-
-    content::RawHtml(res)
-}
-
-#[get("/", rank = 2)]
-fn index_plain() -> String {
+async fn root(TypedHeader(user_agent): TypedHeader<UserAgent>) -> impl IntoResponse {
+    if user_agent.as_str().starts_with("Mozilla/5.0") {
+        return Html(INDEX).into_response();
+    }
     let num = get_rand(Some(0), Some(100));
-    format!("{}\n", num)
+    format!("{}\n", num).into_response()
 }
 
-#[get("/<to>")]
-fn upper_limit(to: u64) -> String {
+async fn upper_limit(Path(to): Path<u64>) -> String {
     format!("{}\n", get_rand(Some(0), Some(to)))
 }
 
-#[get("/<from>/<to>")]
-fn both_limits(from: u64, to: u64) -> Result<String, BadRequest<String>> {
+enum ParamError {
+    Order(u64, u64),
+}
+
+impl IntoResponse for ParamError {
+    fn into_response(self) -> axum::response::Response {
+        match self {
+            ParamError::Order(from, to) => (
+                StatusCode::BAD_REQUEST,
+                format!(
+                    "Wrong parameter order: {} should be <= {} (try switching them around).",
+                    from, to
+                ),
+            )
+                .into_response(),
+        }
+    }
+}
+
+async fn both_limits(Path(limits): Path<(u64, u64)>) -> Result<String, ParamError> {
+    let (from, to) = limits;
     if from > to {
-        return Err(BadRequest::<_>(Some(format!(
-            "Wrong parameter order: {} should be <= {} (try switching them around).",
-            from, to
-        ))));
+        return Err(ParamError::Order(from, to));
     }
     Ok(format!("{}\n", get_rand(Some(from), Some(to))))
 }
 
-#[get("/shuffle/<list>")]
-fn shuffle(list: String) -> String {
-    let mut items: Vec<&str> = list.split(',').into_iter().collect();
+async fn shuffle(Path(list): Path<String>) -> String {
+    let mut items: Vec<&str> = list.split(',').collect();
     items.shuffle(&mut thread_rng());
     items.join("\n")
 }
 
-#[launch]
-fn rocket() -> Rocket<Build> {
-    rocket::build().mount(
-        "/",
-        routes![
-            index_plain,
-            index_browser,
-            upper_limit,
-            both_limits,
-            shuffle
-        ],
-    )
+fn app() -> Router {
+    Router::new()
+        .route("/", get(root))
+        .route("/:from", get(upper_limit))
+        .route("/:from/*to", get(both_limits))
+        .route("/shuffle/:list", get(shuffle))
+}
+
+#[shuttle_runtime::main]
+async fn axum() -> shuttle_axum::ShuttleAxum {
+    Ok(app().into())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rocket::http::Header;
-    use rocket::local::blocking::Client;
+    use axum::{body::Body, http::Request};
+    use tower::ServiceExt; // for `oneshot` and `ready`
 
-    #[test]
-    fn test_index() {
-        let client = Client::untracked(rocket()).expect("valid rocket instance");
-        let mut req = client.get("/");
-        req.add_header(Header::new("User-Agent", "Mozilla/5.0".to_string()));
-        let response = req.dispatch();
-        let content = response
-            .headers()
-            .iter()
-            .find(|h| h.name() == "Content-Type")
+    #[tokio::test]
+    async fn test_index() {
+        let app = app();
+        let resp = app
+            .oneshot(
+                Request::builder()
+                    .header("User-Agent", "Mozilla/5.0")
+                    .uri("/")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
             .unwrap();
-        let content = content.value();
-        assert!(content.contains("text/html"));
-        assert!(response.into_string().unwrap().contains("Randoku"));
+
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(
+            resp.headers().get("Content-Type").unwrap(),
+            "text/html; charset=utf-8"
+        );
+        let body = hyper::body::to_bytes(resp.into_body()).await.unwrap();
+        let body = String::from_utf8(body.to_vec()).unwrap();
+        assert!(body.contains("Randoku"));
     }
 
-    #[test]
-    fn test_upto() {
-        let client = Client::untracked(rocket()).expect("valid rocket instance");
-        let req = client.get("/3");
-        let resp = req.dispatch();
-        let num: u64 = resp
-            .into_string()
-            .expect("a response")
-            .trim_end()
-            .parse()
-            .expect("a number");
+    #[tokio::test]
+    async fn test_upto() {
+        let app = app();
+        let resp = app
+            .oneshot(Request::builder().uri("/3").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = hyper::body::to_bytes(resp.into_body()).await.unwrap();
+        let body = String::from_utf8(body.to_vec()).unwrap();
+        let num: u64 = body.trim_end().parse().expect("a number");
         assert!(num <= 3);
     }
 
-    #[test]
-    fn test_upto_large_number() {
-        let client = Client::untracked(rocket()).expect("valid rocket instance");
-        let req = client.get("/9999999999");
-        let resp = req.dispatch();
-        assert_eq!(resp.status().code, 200);
+    #[tokio::test]
+    async fn test_upto_large_number() {
+        let app = app();
+        let resp = app
+            .oneshot(
+                Request::builder()
+                    .uri("/9999999999")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
 
-        let num: u64 = resp
-            .into_string()
-            .expect("a response")
-            .trim_end()
-            .parse()
-            .expect("a number");
-        dbg!(num);
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = hyper::body::to_bytes(resp.into_body()).await.unwrap();
+        let body = String::from_utf8(body.to_vec()).unwrap();
+        let _: u64 = body.trim_end().parse().expect("a number");
     }
 
-    #[test]
-    fn test_from_to() {
-        let client = Client::untracked(rocket()).expect("valid rocket instance");
-        let req = client.get("/5/9");
-        let resp = req.dispatch();
-        let num: u64 = resp
-            .into_string()
-            .expect("a response")
-            .trim_end()
-            .parse()
-            .expect("a number");
+    #[tokio::test]
+    async fn test_from_to() {
+        let app = app();
+        let resp = app
+            .oneshot(Request::builder().uri("/5/9").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = hyper::body::to_bytes(resp.into_body()).await.unwrap();
+        let body = String::from_utf8(body.to_vec()).unwrap();
+        let num: u64 = body.trim_end().parse().expect("a number");
         assert!(num <= 9);
         assert!(num >= 5);
     }
 
-    #[test]
-    fn test_from_greater_than_to_fails() {
-        let client = Client::untracked(rocket()).expect("valid rocket instance");
-        let req = client.get("/9/5");
-        let resp = req.dispatch();
-        assert_eq!(resp.status().code, 400);
+    #[tokio::test]
+    async fn test_from_greater_than_to_fails() {
+        let app = app();
+        let resp = app
+            .oneshot(Request::builder().uri("/9/5").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+        let body = hyper::body::to_bytes(resp.into_body()).await.unwrap();
+        let body = String::from_utf8(body.to_vec()).unwrap();
+
         assert_eq!(
-            resp.into_string().unwrap().to_string(),
+            body,
             "Wrong parameter order: 9 should be <= 5 (try switching them around).".to_string()
         );
     }
 
-    #[test]
-    fn test_random() {
-        let client = Client::untracked(rocket()).expect("valid rocket instance");
-        let mut req = client.get("/");
-        req.add_header(Header::new("User-Agent", "curl/1.1.1".to_string()));
-        let response = req.dispatch();
+    #[tokio::test]
+    async fn test_random() {
+        let app = app();
+        let resp = app
+            .oneshot(
+                Request::builder()
+                    .header("User-Agent", "curl/1.1.1")
+                    .uri("/")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
 
-        let num: u64 = response
-            .into_string()
-            .expect("a response")
-            .trim_end()
-            .parse()
-            .expect("a number");
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(
+            resp.headers().get("Content-Type").unwrap(),
+            "text/plain; charset=utf-8"
+        );
+        let body = hyper::body::to_bytes(resp.into_body()).await.unwrap();
+        let body = String::from_utf8(body.to_vec()).unwrap();
+        let num: u64 = body.trim_end().parse().unwrap();
         assert!(num <= 100);
     }
 
-    #[test]
-    fn test_shuffle() {
-        let client = Client::untracked(rocket()).expect("valid rocket instance");
-        let req = client.get("/shuffle/apples,bananas,oranges");
-        let response = req.dispatch();
+    #[tokio::test]
+    async fn test_shuffle() {
+        let app = app();
+        let resp = app
+            .oneshot(
+                Request::builder()
+                    .uri("/shuffle/apples,bananas,oranges")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
 
-        let response = response.into_string().expect("a response");
-        let response = response.trim_end();
-        assert!(response.contains("apples"));
-        assert!(response.contains("bananas"));
-        assert!(response.contains("oranges"));
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = hyper::body::to_bytes(resp.into_body()).await.unwrap();
+        let body = String::from_utf8(body.to_vec()).unwrap();
+
+        assert!(body.contains("apples"));
+        assert!(body.contains("bananas"));
+        assert!(body.contains("oranges"));
     }
 }
