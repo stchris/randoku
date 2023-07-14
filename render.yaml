@@ -1,5 +1,0 @@
-services:
-  - type: web
-    name: randoku
-    env: docker
-    healthCheckPath: /
