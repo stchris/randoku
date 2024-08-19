@@ -8,13 +8,13 @@ license = "AGPL-3.0-or-later"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rand = { version = "0.8", features=["std", "std_rng"]}
+rand = { version = "0.8", features = ["std", "std_rng"] }
 lazy_static = "1.4"
-axum = {version="0.6", features=["headers", "macros"]}
-hyper = { version = "0.14", features = ["full"] }
+axum = { version = "0.7", features = ["macros"] }
+axum-extra = { version = "0.9", features = ["typed-header"] }
 tokio = { version = "1.28", features = ["full"] }
-shuttle-axum = "0.21"
-shuttle-runtime = "0.21"
+shuttle-axum = "0.47"
+shuttle-runtime = "0.47"
 
 [dev-dependencies]
-tower = { version = "0.4", features = ["util"] }
+tower = { version = "0.5", features = ["util"] }

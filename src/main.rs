@@ -2,7 +2,10 @@ use std::sync::Mutex;
 
 use axum::extract::Path;
 use axum::response::{Html, IntoResponse};
-use axum::{headers::UserAgent, http::StatusCode, routing::get, Router, TypedHeader};
+use axum::{http::StatusCode, routing::get, Router};
+use axum_extra::headers::UserAgent;
+use axum_extra::TypedHeader;
+
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
@@ -82,8 +85,13 @@ async fn axum() -> shuttle_axum::ShuttleAxum {
 
 #[cfg(test)]
 mod tests {
+    use std::usize;
+
     use super::*;
-    use axum::{body::Body, http::Request};
+    use axum::{
+        body::{self, Body},
+        http::Request,
+    };
     use tower::ServiceExt; // for `oneshot` and `ready`
 
     #[tokio::test]
@@ -105,7 +113,7 @@ mod tests {
             resp.headers().get("Content-Type").unwrap(),
             "text/html; charset=utf-8"
         );
-        let body = hyper::body::to_bytes(resp.into_body()).await.unwrap();
+        let body = body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
         let body = String::from_utf8(body.to_vec()).unwrap();
         assert!(body.contains("Randoku"));
     }
@@ -119,7 +127,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(resp.status(), StatusCode::OK);
-        let body = hyper::body::to_bytes(resp.into_body()).await.unwrap();
+        let body = body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
         let body = String::from_utf8(body.to_vec()).unwrap();
         let num: u64 = body.trim_end().parse().expect("a number");
         assert!(num <= 3);
@@ -139,7 +147,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(resp.status(), StatusCode::OK);
-        let body = hyper::body::to_bytes(resp.into_body()).await.unwrap();
+        let body = body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
         let body = String::from_utf8(body.to_vec()).unwrap();
         let _: u64 = body.trim_end().parse().expect("a number");
     }
@@ -153,7 +161,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(resp.status(), StatusCode::OK);
-        let body = hyper::body::to_bytes(resp.into_body()).await.unwrap();
+        let body = body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
         let body = String::from_utf8(body.to_vec()).unwrap();
         let num: u64 = body.trim_end().parse().expect("a number");
         assert!(num <= 9);
@@ -169,7 +177,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
-        let body = hyper::body::to_bytes(resp.into_body()).await.unwrap();
+        let body = body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
         let body = String::from_utf8(body.to_vec()).unwrap();
 
         assert_eq!(
@@ -197,7 +205,7 @@ mod tests {
             resp.headers().get("Content-Type").unwrap(),
             "text/plain; charset=utf-8"
         );
-        let body = hyper::body::to_bytes(resp.into_body()).await.unwrap();
+        let body = body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
         let body = String::from_utf8(body.to_vec()).unwrap();
         let num: u64 = body.trim_end().parse().unwrap();
         assert!(num <= 100);
@@ -217,7 +225,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(resp.status(), StatusCode::OK);
-        let body = hyper::body::to_bytes(resp.into_body()).await.unwrap();
+        let body = body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
         let body = String::from_utf8(body.to_vec()).unwrap();
 
         assert!(body.contains("apples"));
