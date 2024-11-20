@@ -13,7 +13,7 @@ lazy_static = "1.4"
 axum = { version = "0.7", features = ["macros"] }
 axum-extra = { version = "0.9", features = ["typed-header"] }
 tokio = { version = "1.28", features = ["full"] }
-shuttle-axum = "0.47"
+shuttle-axum = "0.49"
 shuttle-runtime = "0.47"
 
 [dev-dependencies]
