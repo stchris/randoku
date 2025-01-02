@@ -11,7 +11,7 @@ license = "AGPL-3.0-or-later"
 rand = { version = "0.8", features = ["std", "std_rng"] }
 lazy_static = "1.4"
 axum = { version = "0.7", features = ["macros"] }
-axum-extra = { version = "0.9", features = ["typed-header"] }
+axum-extra = { version = "0.10", features = ["typed-header"] }
 tokio = { version = "1.28", features = ["full"] }
 shuttle-axum = "0.47"
 shuttle-runtime = "0.47"
